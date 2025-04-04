@@ -20,6 +20,7 @@
             --grid-color: #e0e0e0;
             --robot-color: #ff6b81;
             --turtle-color: #1dd1a1;
+            --wall-color: #555;
             --icon-filter: none;
         }
 
@@ -38,6 +39,7 @@
             --grid-color: #2a3a5e;
             --robot-color: #ff4757;
             --turtle-color: #00d2d3;
+            --wall-color: #888;
             --icon-filter: invert(1) brightness(1.5);
         }
 
@@ -312,6 +314,10 @@
             margin-top: 5px;
             font-style: italic;
         }
+
+        .robot-cell-wall {
+            background-color: var(--wall-color) !important;
+        }
     </style>
 </head>
 <body>
@@ -354,6 +360,7 @@
                     <option value="закрасить" class="robot">закрасить</option>
                     <option value="клетка_закрашена" class="robot">клетка_закрашена</option>
                     <option value="сместиться" class="robot">сместиться</option>
+                    <option value="стена" class="robot">стена</option>
                     
                     <option value="использовать Черепаха" class="turtle">использовать Черепаха</option>
                     <option value="опустить_перо" class="turtle">опустить_перо</option>
@@ -405,6 +412,12 @@
                     </svg>
                     Очистить код
                 </button>
+                <button id="add-wall-btn" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/>
+                    </svg>
+                    Добавить стену
+                </button>
             </div>
         </div>
 
@@ -444,6 +457,12 @@
                         Размер сетки:
                         <input type="number" id="robot-grid-size" min="5" max="50" value="15">
                     </label>
+                    <button id="clear-walls-btn" class="secondary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 4H15.5L14.5 3H9.5L8.5 4H5V6H19M6 19C6 19.5304 6.21071 20.0391 6.58579 20.4142C6.96086 20.7893 7.46957 21 8 21H16C16.5304 21 17.0391 20.7893 17.4142 20.4142C17.7893 20.0391 18 19.5304 18 19V7H6V19Z" fill="currentColor"/>
+                        </svg>
+                        Очистить стены
+                    </button>
                 </div>
                 <canvas id="robot-canvas" width="400" height="400"></canvas>
             </div>
@@ -467,7 +486,7 @@
 
         <div class="status-bar">
             <span id="status-line">Готов к выполнению</span>
-            <span id="version-info">Кумир Web v1.0</span>
+            <span id="version-info">Кумир Web v1.1</span>
         </div>
     </div>
 
@@ -485,6 +504,8 @@
             const tabContents = document.querySelectorAll('.tab-content');
             const themeToggle = document.getElementById('theme-toggle');
             const statusLine = document.getElementById('status-line');
+            const addWallBtn = document.getElementById('add-wall-btn');
+            const clearWallsBtn = document.getElementById('clear-walls-btn');
             
             // Графические исполнители
             const robotCanvas = document.getElementById('robot-canvas');
@@ -504,7 +525,8 @@
                 cellSize: 0,
                 direction: 'right',
                 isPenDown: false,
-                coloredCells: new Set()
+                coloredCells: new Set(),
+                walls: new Set()
             };
             
             let turtleState = {
@@ -517,9 +539,13 @@
                 path: []
             };
             
+            // Базовый код, который нельзя удалить
+            const baseCode = "алг\nнач\n  \nкон";
+            
             // Инициализация
             initRobot();
             initTurtle();
+            preserveBaseCode();
             
             // Обработчики кнопок
             runBtn.addEventListener('click', executeKumir);
@@ -528,10 +554,15 @@
                 updateStatus('Вывод очищен');
             });
             clearCodeBtn.addEventListener('click', () => {
-                codeTextarea.value = '';
-                updateStatus('Код очищен');
+                codeTextarea.value = baseCode;
+                updateStatus('Код очищен до базовой структуры');
             });
             insertBtn.addEventListener('click', insertCommand);
+            addWallBtn.addEventListener('click', addWallAtRobotPosition);
+            clearWallsBtn.addEventListener('click', clearAllWalls);
+            
+            // Обработчик изменения текста в редакторе
+            codeTextarea.addEventListener('input', preserveBaseCode);
             
             // Горячая клавиша F9
             document.addEventListener('keydown', function(e) {
@@ -590,8 +621,39 @@
                     ? '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDdDMTMuMSw3IDE0LDYuMSAxNCw1QzE0LDMuOSAxMy4xLDMgMTIsM0MxMC45LDMgMTAsMy45IDEwLDVDMTAsNi4xIDEwLjksNyAxMiw3TTEyLDVDMTIuNSw1IDEzLDUuNCAxMyw2QzEzLDYuNSAxMi41LDcgMTIsN0MxMS41LDcgMTEsNi41IDExLDZDMTEsNS40IDExLjUsNSAxMiw1TTUsMTJDNSw4LjEgOC4xLDUgMTIsNUMxNS45LDUgMTksOC4xIDE5LDEyQzE5LDE1LjkgMTUuOSwxOSAxMiwxOUM4LjEsMTkgNSwxNS45IDUsMTJNMTIsM0M3LDMgMyw3IDMsMTJDNywxNyAxMiwyMSAxMiwyMUMxNywyMSAyMSwxNyAyMSwxMkMyMSw3IDE3LDMgMTIsM00xMiwxQzE2LjQsMSAyMCw0LjYgMjAsOUMyMCwxMy40IDE2LjQsMTcgMTIsMTdDNy42LDE3IDQsMTMuNCA0LDlDNCw0LjYgNy42LDEgMTIsMU0xMiwxOUM4LjEsMTkgNSwxNS45IDUsMTJDNywxNiAxMC44LDE5IDEyLDE5QzEzLjIsMTkgMTcsMTYgMTksMTJDMTksMTUuOSAxNS45LDE5IDEyLDE5WiIvPjwvc3ZnPg==" alt="Light">'
                     : '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDIgQTEwLjMzLDEwLjMzIDAgMCwwIDEyLDIyIEExMC4zMywxMC4zMyAwIDAsMCAxMiwyIFoiLz48L3N2Zz4=" alt="Dark">';
                 
+                // Перерисовываем исполнителей при смене темы
+                drawRobotGrid();
+                drawTurtle();
+                
                 updateStatus(`Тема изменена на ${isDark ? 'тёмную' : 'светлую'}`);
             });
+            
+            // Добавление стены на текущей позиции робота
+            function addWallAtRobotPosition() {
+                const cellKey = `${robotState.x},${robotState.y}`;
+                if (!robotState.walls.has(cellKey)) {
+                    robotState.walls.add(cellKey);
+                    drawRobotGrid();
+                    updateStatus(`Стена добавлена на (${robotState.x}, ${robotState.y})`);
+                } else {
+                    updateStatus(`На (${robotState.x}, ${robotState.y}) уже есть стена`, 'error');
+                }
+            }
+            
+            // Очистка всех стен
+            function clearAllWalls() {
+                robotState.walls = new Set();
+                drawRobotGrid();
+                updateStatus('Все стены удалены');
+            }
+            
+            // Сохранение базовой структуры кода
+            function preserveBaseCode() {
+                const code = codeTextarea.value;
+                if (!code.includes('алг') || !code.includes('нач') || !code.includes('кон')) {
+                    codeTextarea.value = baseCode;
+                }
+            }
             
             // Обновление списка команд в зависимости от выбранного типа
             function updateCommandList() {
@@ -624,7 +686,15 @@
                 const textBefore = codeTextarea.value.substring(0, cursorPos);
                 const textAfter = codeTextarea.value.substring(cursorPos);
                 
-                codeTextarea.value = textBefore + command + textAfter;
+                // Проверяем, есть ли уже базовые конструкции
+                let newCode = textBefore + command + textAfter;
+                
+                // Если вставляем алг/нач/кон, убедимся, что они не дублируются
+                if (command.includes('алг') && textBefore.includes('алг')) {
+                    return;
+                }
+                
+                codeTextarea.value = newCode;
                 codeTextarea.focus();
                 codeTextarea.selectionStart = cursorPos + command.length;
                 codeTextarea.selectionEnd = cursorPos + command.length;
@@ -638,6 +708,7 @@
                 robotState.y = Math.floor(robotState.gridSize / 2);
                 robotState.direction = 'right';
                 robotState.coloredCells = new Set();
+                robotState.walls = new Set();
                 robotState.cellSize = robotCanvas.width / robotState.gridSize;
                 
                 drawRobotGrid();
@@ -665,6 +736,18 @@
                     robotCtx.stroke();
                 }
                 
+                // Рисуем стены
+                robotState.walls.forEach(cell => {
+                    const [x, y] = cell.split(',').map(Number);
+                    robotCtx.fillStyle = 'var(--wall-color)';
+                    robotCtx.fillRect(
+                        x * robotState.cellSize,
+                        y * robotState.cellSize,
+                        robotState.cellSize,
+                        robotState.cellSize
+                    );
+                });
+                
                 // Закрашиваем отмеченные клетки
                 robotState.coloredCells.forEach(cell => {
                     const [x, y] = cell.split(',').map(Number);
@@ -681,33 +764,37 @@
                 const centerX = (robotState.x + 0.5) * robotState.cellSize;
                 const centerY = (robotState.y + 0.5) * robotState.cellSize;
                 
-                robotCtx.fillStyle = 'var(--robot-color)';
-                robotCtx.beginPath();
-                robotCtx.arc(centerX, centerY, robotState.cellSize * 0.4, 0, Math.PI * 2);
-                robotCtx.fill();
-                
-                // Рисуем направление
-                robotCtx.strokeStyle = 'var(--canvas-bg)';
-                robotCtx.lineWidth = 2;
-                robotCtx.beginPath();
-                robotCtx.moveTo(centerX, centerY);
-                
-                switch (robotState.direction) {
-                    case 'up':
-                        robotCtx.lineTo(centerX, centerY - robotState.cellSize * 0.3);
-                        break;
-                    case 'down':
-                        robotCtx.lineTo(centerX, centerY + robotState.cellSize * 0.3);
-                        break;
-                    case 'left':
-                        robotCtx.lineTo(centerX - robotState.cellSize * 0.3, centerY);
-                        break;
-                    case 'right':
-                        robotCtx.lineTo(centerX + robotState.cellSize * 0.3, centerY);
-                        break;
+                // Если клетка не является стеной, рисуем робота
+                const cellKey = `${robotState.x},${robotState.y}`;
+                if (!robotState.walls.has(cellKey)) {
+                    robotCtx.fillStyle = 'var(--robot-color)';
+                    robotCtx.beginPath();
+                    robotCtx.arc(centerX, centerY, robotState.cellSize * 0.4, 0, Math.PI * 2);
+                    robotCtx.fill();
+                    
+                    // Рисуем направление
+                    robotCtx.strokeStyle = 'var(--canvas-bg)';
+                    robotCtx.lineWidth = 2;
+                    robotCtx.beginPath();
+                    robotCtx.moveTo(centerX, centerY);
+                    
+                    switch (robotState.direction) {
+                        case 'up':
+                            robotCtx.lineTo(centerX, centerY - robotState.cellSize * 0.3);
+                            break;
+                        case 'down':
+                            robotCtx.lineTo(centerX, centerY + robotState.cellSize * 0.3);
+                            break;
+                        case 'left':
+                            robotCtx.lineTo(centerX - robotState.cellSize * 0.3, centerY);
+                            break;
+                        case 'right':
+                            robotCtx.lineTo(centerX + robotState.cellSize * 0.3, centerY);
+                            break;
+                    }
+                    
+                    robotCtx.stroke();
                 }
-                
-                robotCtx.stroke();
             }
             
             // Инициализация Черепахи
@@ -759,14 +846,21 @@
                 turtleCtx.stroke();
             }
             
+            // Проверка, есть ли стена на указанной клетке
+            function isWall(x, y) {
+                return robotState.walls.has(`${x},${y}`);
+            }
+            
             // Простой интерпретатор Кумир
             function executeKumir() {
                 const code = codeTextarea.value;
                 outputDiv.innerHTML = '';
                 updateStatus('Выполнение программы...');
                 
-                // Сброс исполнителей перед выполнением
+                // Сброс исполнителей перед выполнением (кроме стен)
+                const savedWalls = new Set(robotState.walls);
                 initRobot();
+                robotState.walls = savedWalls;
                 initTurtle();
                 
                 try {
@@ -882,25 +976,41 @@
                                     drawRobotGrid();
                                 } else if (line === 'закрасить') {
                                     const cellKey = `${robotState.x},${robotState.y}`;
-                                    robotState.coloredCells.add(cellKey);
-                                    drawRobotGrid();
+                                    if (!isWall(robotState.x, robotState.y)) {
+                                        robotState.coloredCells.add(cellKey);
+                                        drawRobotGrid();
+                                    }
                                 } else if (line === 'клетка_закрашена') {
                                     const cellKey = `${robotState.x},${robotState.y}`;
                                     return robotState.coloredCells.has(cellKey);
+                                } else if (line === 'стена') {
+                                    const cellKey = `${robotState.x},${robotState.y}`;
+                                    return robotState.walls.has(cellKey);
                                 } else if (line === 'сместиться') {
+                                    let newX = robotState.x;
+                                    let newY = robotState.y;
+                                    
                                     switch (robotState.direction) {
                                         case 'up':
-                                            if (robotState.y > 0) robotState.y--;
+                                            newY = robotState.y - 1;
                                             break;
                                         case 'down':
-                                            if (robotState.y < robotState.gridSize - 1) robotState.y++;
+                                            newY = robotState.y + 1;
                                             break;
                                         case 'left':
-                                            if (robotState.x > 0) robotState.x--;
+                                            newX = robotState.x - 1;
                                             break;
                                         case 'right':
-                                            if (robotState.x < robotState.gridSize - 1) robotState.x++;
+                                            newX = robotState.x + 1;
                                             break;
+                                    }
+                                    
+                                    // Проверяем границы и стены
+                                    if (newX >= 0 && newX < robotState.gridSize && 
+                                        newY >= 0 && newY < robotState.gridSize &&
+                                        !isWall(newX, newY)) {
+                                        robotState.x = newX;
+                                        robotState.y = newY;
                                     }
                                     drawRobotGrid();
                                 }
