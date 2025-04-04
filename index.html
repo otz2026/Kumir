@@ -3,199 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Интерпретатор Кумир с графикой</title>
+    <title>Интерпретатор Кумир | Web-версия</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            line-height: 1.6;
+        :root {
+            --bg-color: #f5f7fa;
+            --text-color: #333;
+            --primary-color: #4a6bff;
+            --secondary-color: #f0f2f5;
+            --editor-bg: #ffffff;
+            --border-color: #d1d5db;
+            --button-hover: #3a56e0;
+            --error-color: #ff4757;
+            --success-color: #2ed573;
+            --tab-bg: #e8eaed;
+            --canvas-bg: #ffffff;
+            --grid-color: #e0e0e0;
+            --robot-color: #ff6b81;
+            --turtle-color: #1dd1a1;
+            --icon-filter: none;
         }
+
+        .dark-mode {
+            --bg-color: #1a1a2e;
+            --text-color: #e6e6e6;
+            --primary-color: #6c8eff;
+            --secondary-color: #16213e;
+            --editor-bg: #0f3460;
+            --border-color: #2a3a5e;
+            --button-hover: #5a7aff;
+            --error-color: #ff6b81;
+            --success-color: #1dd1a1;
+            --tab-bg: #16213e;
+            --canvas-bg: #0f172a;
+            --grid-color: #2a3a5e;
+            --robot-color: #ff4757;
+            --turtle-color: #00d2d3;
+            --icon-filter: invert(1) brightness(1.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
         }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary-color), var(--turtle-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--secondary-color);
+        }
+
+        .theme-toggle img {
+            width: 24px;
+            height: 24px;
+            filter: var(--icon-filter);
+        }
+
+        .panel {
+            background-color: var(--secondary-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
         .editor-area, .output-area {
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
             min-height: 200px;
-            background-color: #f9f9f9;
+            background-color: var(--editor-bg);
+            border: 1px solid var(--border-color);
         }
+
         textarea {
             width: 100%;
             height: 300px;
-            font-family: monospace;
-            font-size: 14px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
             resize: vertical;
             border: none;
             outline: none;
             background-color: transparent;
+            color: var(--text-color);
+            padding: 15px;
+            line-height: 1.5;
         }
+
         .output-area {
-            font-family: monospace;
+            font-family: 'Consolas', 'Monaco', monospace;
             white-space: pre-wrap;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 300px;
         }
+
         .button-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
         }
+
         button {
-            padding: 8px 15px;
-            background-color: #4CAF50;
+            padding: 10px 18px;
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
         }
+
         button:hover {
-            background-color: #45a049;
+            background-color: var(--button-hover);
+            transform: translateY(-1px);
         }
-        h1 {
-            color: #333;
+
+        button:active {
+            transform: translateY(0);
         }
+
+        button.secondary {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background-color: var(--border-color);
+        }
+
         .error {
-            color: red;
+            color: var(--error-color);
         }
+
+        .success {
+            color: var(--success-color);
+        }
+
         .menu {
             display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 12px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
         }
-        .menu select, .menu button {
-            padding: 6px 10px;
+
+        select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--editor-bg);
+            color: var(--text-color);
+            font-size: 14px;
+            min-width: 200px;
+            outline: none;
         }
+
         .canvas-container {
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
         }
+
         canvas {
-            border: 1px solid #000;
-            background-color: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--canvas-bg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .executor-controls {
-            margin-top: 10px;
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
         }
+
         .tab-buttons {
             display: flex;
             gap: 5px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            background-color: var(--tab-bg);
+            padding: 5px;
+            border-radius: 8px;
         }
+
         .tab-button {
-            padding: 5px 10px;
-            background-color: #ddd;
+            padding: 8px 16px;
+            background-color: transparent;
             border: none;
-            border-radius: 4px 4px 0 0;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 500;
+            color: var(--text-color);
+            transition: all 0.2s;
         }
+
         .tab-button.active {
-            background-color: #4CAF50;
+            background-color: var(--primary-color);
             color: white;
         }
+
         .tab-content {
             display: none;
+            animation: fadeIn 0.3s ease;
         }
+
         .tab-content.active {
             display: block;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        input[type="number"], input[type="range"] {
+            background-color: var(--editor-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            width: 120px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            filter: var(--icon-filter);
+        }
+
+        .status-bar {
+            font-size: 13px;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 5px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .command-hint {
+            font-size: 13px;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 5px;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Интерпретатор Кумир с графическими исполнителями</h1>
-        
-        <div class="menu">
-            <select id="command-type">
-                <option value="basic">Основные команды</option>
-                <option value="loop">Циклы</option>
-                <option value="robot">Робот</option>
-                <option value="turtle">Черепаха</option>
-                <option value="io">Ввод/вывод</option>
-            </select>
+        <header>
+            <div class="logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDEyQzE2LDExLjk5NyAxNiwxNiAxNiwxNkMxNiwxNiAxMS45OTcsMTYgMTIsMTJDMTIsMTIgOCwxMS45OTcgOCwxNkM4LDE2IDEyLDE2IDEyLDEyTTEyLDJMMiw3TDEyLDEyTDIyLDdMMTIsMloiLz48L3N2Zz4=" class="logo-icon" alt="Logo">
+                <h1>Кумир Online</h1>
+            </div>
+            <button class="theme-toggle" id="theme-toggle">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDJBMTAuMzMsMTAuMzMgMCAwLDAgMTIsMjJBMTAuMzMsMTAuMzMgMCAwLDAgMTIsMloiLz48L3N2Zz4=" alt="Theme">
+            </button>
+        </header>
+
+        <div class="panel">
+            <div class="menu">
+                <select id="command-type">
+                    <option value="basic">Основные команды</option>
+                    <option value="loop">Циклы</option>
+                    <option value="robot">Робот</option>
+                    <option value="turtle">Черепаха</option>
+                    <option value="io">Ввод/вывод</option>
+                </select>
+                
+                <select id="command-select">
+                    <option value="алг\nнач\nкон">алг...нач...кон</option>
+                    <option value="вывод &quot;текст&quot;">вывод "текст"</option>
+                    <option value="вещ x := 0">вещ x := 0</option>
+                    <option value="цел x := 0">цел x := 0</option>
+                    <option value="лит x := &quot;&quot;">лит x := ""</option>
+                    
+                    <option value="нц для i от 1 до 10\n  \nкц" class="loop">нц для i от 1 до 10...кц</option>
+                    <option value="нц пока условие\n  \nкц" class="loop">нц пока условие...кц</option>
+                    
+                    <option value="использовать Робот" class="robot">использовать Робот</option>
+                    <option value="вверх" class="robot">вверх</option>
+                    <option value="вниз" class="robot">вниз</option>
+                    <option value="влево" class="robot">влево</option>
+                    <option value="вправо" class="robot">вправо</option>
+                    <option value="закрасить" class="robot">закрасить</option>
+                    <option value="клетка_закрашена" class="robot">клетка_закрашена</option>
+                    <option value="сместиться" class="robot">сместиться</option>
+                    
+                    <option value="использовать Черепаха" class="turtle">использовать Черепаха</option>
+                    <option value="опустить_перо" class="turtle">опустить_перо</option>
+                    <option value="поднять_перо" class="turtle">поднять_перо</option>
+                    <option value="вперёд(10)" class="turtle">вперёд(10)</option>
+                    <option value="назад(10)" class="turtle">назад(10)</option>
+                    <option value="влево(90)" class="turtle">влево(90)</option>
+                    <option value="вправо(90)" class="turtle">вправо(90)</option>
+                    
+                    <option value="ввод x" class="io">ввод x</option>
+                    <option value="вывод x" class="io">вывод x</option>
+                </select>
+                
+                <button id="insert-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="white"/>
+                    </svg>
+                    Вставить
+                </button>
+            </div>
             
-            <select id="command-select">
-                <!-- Основные команды -->
-                <option value="алг\nнач\nкон">алг...нач...кон</option>
-                <option value="вывод &quot;текст&quot;">вывод "текст"</option>
-                <option value="вещ x := 0">вещ x := 0</option>
-                <option value="цел x := 0">цел x := 0</option>
-                <option value="лит x := &quot;&quot;">лит x := ""</option>
-                
-                <!-- Циклы -->
-                <option value="нц для i от 1 до 10\n  \nкц" class="loop">нц для i от 1 до 10...кц</option>
-                <option value="нц пока условие\n  \nкц" class="loop">нц пока условие...кц</option>
-                
-                <!-- Робот -->
-                <option value="использовать Робот" class="robot">использовать Робот</option>
-                <option value="вверх" class="robot">вверх</option>
-                <option value="вниз" class="robot">вниз</option>
-                <option value="влево" class="robot">влево</option>
-                <option value="вправо" class="robot">вправо</option>
-                <option value="закрасить" class="robot">закрасить</option>
-                <option value="клетка_закрашена" class="robot">клетка_закрашена</option>
-                
-                <!-- Черепаха -->
-                <option value="использовать Черепаха" class="turtle">использовать Черепаха</option>
-                <option value="опустить_перо" class="turtle">опустить_перо</option>
-                <option value="поднять_перо" class="turtle">поднять_перо</option>
-                <option value="вперёд(10)" class="turtle">вперёд(10)</option>
-                <option value="назад(10)" class="turtle">назад(10)</option>
-                <option value="влево(90)" class="turtle">влево(90)</option>
-                <option value="вправо(90)" class="turtle">вправо(90)</option>
-                
-                <!-- Ввод/вывод -->
-                <option value="ввод x" class="io">ввод x</option>
-                <option value="вывод x" class="io">вывод x</option>
-            </select>
-            
-            <button id="insert-btn">Вставить</button>
-        </div>
-        
-        <div class="editor-area">
-            <textarea id="kumir-code" spellcheck="false">алг
+            <div class="editor-area">
+                <textarea id="kumir-code" spellcheck="false">алг
 нач
   вывод "Привет, Кумир!"
 кон</textarea>
-        </div>
-        
-        <div class="button-group">
-            <button id="run-btn">Выполнить (F9)</button>
-            <button id="clear-btn">Очистить вывод</button>
-            <button id="clear-code-btn">Очистить код</button>
-        </div>
-        
-        <div class="tab-buttons">
-            <button class="tab-button active" data-tab="output">Вывод</button>
-            <button class="tab-button" data-tab="robot-tab">Робот</button>
-            <button class="tab-button" data-tab="turtle-tab">Черепаха</button>
-        </div>
-        
-        <div class="tab-content active" id="output"></div>
-        
-        <div class="tab-content" id="robot-tab">
-            <div class="executor-controls">
-                <button id="reset-robot-btn">Сбросить Робота</button>
-                <label>Размер сетки:
-                    <input type="number" id="robot-grid-size" min="5" max="50" value="15">
-                </label>
             </div>
-            <canvas id="robot-canvas" width="400" height="400"></canvas>
+            
+            <div class="command-hint">Используйте F9 для быстрого выполнения программы</div>
         </div>
-        
-        <div class="tab-content" id="turtle-tab">
-            <div class="executor-controls">
-                <button id="reset-turtle-btn">Сбросить Черепаху</button>
-                <label>Скорость:
-                    <input type="range" id="turtle-speed" min="1" max="10" value="5">
-                </label>
+
+        <div class="panel">
+            <div class="button-group">
+                <button id="run-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" fill="white"/>
+                    </svg>
+                    Выполнить (F9)
+                </button>
+                <button id="clear-btn" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 4H15.5L14.5 3H9.5L8.5 4H5V6H19M6 19C6 19.5304 6.21071 20.0391 6.58579 20.4142C6.96086 20.7893 7.46957 21 8 21H16C16.5304 21 17.0391 20.7893 17.4142 20.4142C17.7893 20.0391 18 19.5304 18 19V7H6V19Z" fill="currentColor"/>
+                    </svg>
+                    Очистить вывод
+                </button>
+                <button id="clear-code-btn" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 4H15.5L14.5 3H9.5L8.5 4H5V6H19M6 19C6 19.5304 6.21071 20.0391 6.58579 20.4142C6.96086 20.7893 7.46957 21 8 21H16C16.5304 21 17.0391 20.7893 17.4142 20.4142C17.7893 20.0391 18 19.5304 18 19V7H6V19Z" fill="currentColor"/>
+                    </svg>
+                    Очистить код
+                </button>
             </div>
-            <canvas id="turtle-canvas" width="400" height="400"></canvas>
+        </div>
+
+        <div class="panel">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="output">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 8H11V11H8V13H11V16H13V13H16V11H13V8ZM12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="currentColor"/>
+                    </svg>
+                    Вывод
+                </button>
+                <button class="tab-button" data-tab="robot-tab">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9H15V22H13V16H11V22H9V9H3V7H21V9Z" fill="currentColor"/>
+                    </svg>
+                    Робот
+                </button>
+                <button class="tab-button" data-tab="turtle-tab">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 2C8.69 2 6 4.69 6 8C6 11.31 8.69 14 12 14C15.31 14 18 11.31 18 8C18 4.69 15.31 2 12 2ZM12 16C7.58 16 4 19.58 4 24H6C6 20.69 8.69 18 12 18C15.31 18 18 20.69 18 24H20C20 19.58 16.42 16 12 16Z" fill="currentColor"/>
+                    </svg>
+                    Черепаха
+                </button>
+            </div>
+            
+            <div class="tab-content active" id="output"></div>
+            
+            <div class="tab-content" id="robot-tab">
+                <div class="executor-controls">
+                    <button id="reset-robot-btn" class="secondary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5V1L7 6L12 11V7C15.31 7 18 9.69 18 13C18 16.31 15.31 19 12 19C8.69 19 6 16.31 6 13H4C4 17.42 7.58 21 12 21C16.42 21 20 17.42 20 13C20 8.58 16.42 5 12 5Z" fill="currentColor"/>
+                        </svg>
+                        Сбросить Робота
+                    </button>
+                    <label>
+                        Размер сетки:
+                        <input type="number" id="robot-grid-size" min="5" max="50" value="15">
+                    </label>
+                </div>
+                <canvas id="robot-canvas" width="400" height="400"></canvas>
+            </div>
+            
+            <div class="tab-content" id="turtle-tab">
+                <div class="executor-controls">
+                    <button id="reset-turtle-btn" class="secondary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5V1L7 6L12 11V7C15.31 7 18 9.69 18 13C18 16.31 15.31 19 12 19C8.69 19 6 16.31 6 13H4C4 17.42 7.58 21 12 21C16.42 21 20 17.42 20 13C20 8.58 16.42 5 12 5Z" fill="currentColor"/>
+                        </svg>
+                        Сбросить Черепаху
+                    </button>
+                    <label>
+                        Скорость:
+                        <input type="range" id="turtle-speed" min="1" max="10" value="5">
+                    </label>
+                </div>
+                <canvas id="turtle-canvas" width="400" height="400"></canvas>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="status-line">Готов к выполнению</span>
+            <span id="version-info">Кумир Web v1.0</span>
         </div>
     </div>
 
@@ -211,6 +483,8 @@
             const insertBtn = document.getElementById('insert-btn');
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
+            const themeToggle = document.getElementById('theme-toggle');
+            const statusLine = document.getElementById('status-line');
             
             // Графические исполнители
             const robotCanvas = document.getElementById('robot-canvas');
@@ -220,6 +494,7 @@
             const resetRobotBtn = document.getElementById('reset-robot-btn');
             const resetTurtleBtn = document.getElementById('reset-turtle-btn');
             const robotGridSizeInput = document.getElementById('robot-grid-size');
+            const turtleSpeedInput = document.getElementById('turtle-speed');
             
             // Состояние исполнителей
             let robotState = {
@@ -237,7 +512,7 @@
                 y: 200,
                 angle: 0,
                 isPenDown: true,
-                color: '#000000',
+                color: 'var(--turtle-color)',
                 speed: 5,
                 path: []
             };
@@ -248,8 +523,14 @@
             
             // Обработчики кнопок
             runBtn.addEventListener('click', executeKumir);
-            clearBtn.addEventListener('click', () => outputDiv.innerHTML = '');
-            clearCodeBtn.addEventListener('click', () => codeTextarea.value = '');
+            clearBtn.addEventListener('click', () => {
+                outputDiv.innerHTML = '';
+                updateStatus('Вывод очищен');
+            });
+            clearCodeBtn.addEventListener('click', () => {
+                codeTextarea.value = '';
+                updateStatus('Код очищен');
+            });
             insertBtn.addEventListener('click', insertCommand);
             
             // Горячая клавиша F9
@@ -264,11 +545,22 @@
             commandTypeSelect.addEventListener('change', updateCommandList);
             
             // Сброс исполнителей
-            resetRobotBtn.addEventListener('click', initRobot);
-            resetTurtleBtn.addEventListener('click', initTurtle);
+            resetRobotBtn.addEventListener('click', () => {
+                initRobot();
+                updateStatus('Робот сброшен');
+            });
+            resetTurtleBtn.addEventListener('click', () => {
+                initTurtle();
+                updateStatus('Черепаха сброшена');
+            });
             robotGridSizeInput.addEventListener('change', () => {
                 robotState.gridSize = parseInt(robotGridSizeInput.value);
                 initRobot();
+                updateStatus(`Размер сетки изменен на ${robotState.gridSize}x${robotState.gridSize}`);
+            });
+            turtleSpeedInput.addEventListener('input', () => {
+                turtleState.speed = parseInt(turtleSpeedInput.value);
+                updateStatus(`Скорость Черепахи: ${turtleState.speed}/10`);
             });
             
             // Переключение вкладок
@@ -280,7 +572,25 @@
                     button.classList.add('active');
                     const tabId = button.getAttribute('data-tab');
                     document.getElementById(tabId).classList.add('active');
+                    
+                    // Перерисовываем исполнителя при переключении на его вкладку
+                    if (tabId === 'robot-tab') {
+                        drawRobotGrid();
+                    } else if (tabId === 'turtle-tab') {
+                        drawTurtle();
+                    }
                 });
+            });
+            
+            // Переключение темы
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                themeToggle.innerHTML = isDark 
+                    ? '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDdDMTMuMSw3IDE0LDYuMSAxNCw1QzE0LDMuOSAxMy4xLDMgMTIsM0MxMC45LDMgMTAsMy45IDEwLDVDMTAsNi4xIDEwLjksNyAxMiw3TTEyLDVDMTIuNSw1IDEzLDUuNCAxMyw2QzEzLDYuNSAxMi41LDcgMTIsN0MxMS41LDcgMTEsNi41IDExLDZDMTEsNS40IDExLjUsNSAxMiw1TTUsMTJDNSw4LjEgOC4xLDUgMTIsNUMxNS45LDUgMTksOC4xIDE5LDEyQzE5LDE1LjkgMTUuOSwxOSAxMiwxOUM4LjEsMTkgNSwxNS45IDUsMTJNMTIsM0M3LDMgMyw3IDMsMTJDNywxNyAxMiwyMSAxMiwyMUMxNywyMSAyMSwxNyAyMSwxMkMyMSw3IDE3LDMgMTIsM00xMiwxQzE2LjQsMSAyMCw0LjYgMjAsOUMyMCwxMy40IDE2LjQsMTcgMTIsMTdDNy42LDE3IDQsMTMuNCA0LDlDNCw0LjYgNy42LDEgMTIsMU0xMiwxOUM4LjEsMTkgNSwxNS45IDUsMTJDNywxNiAxMC44LDE5IDEyLDE5QzEzLjIsMTkgMTcsMTYgMTksMTJDMTksMTUuOSAxNS45LDE5IDEyLDE5WiIvPjwvc3ZnPg==" alt="Light">'
+                    : '<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyLDIgQTEwLjMzLDEwLjMzIDAgMCwwIDEyLDIyIEExMC4zMywxMC4zMyAwIDAsMCAxMiwyIFoiLz48L3N2Zz4=" alt="Dark">';
+                
+                updateStatus(`Тема изменена на ${isDark ? 'тёмную' : 'светлую'}`);
             });
             
             // Обновление списка команд в зависимости от выбранного типа
@@ -303,6 +613,8 @@
                         break;
                     }
                 }
+                
+                updateStatus(`Выбран тип команд: ${commandTypeSelect.options[commandTypeSelect.selectedIndex].text}`);
             }
             
             // Вставка выбранной команды
@@ -316,12 +628,14 @@
                 codeTextarea.focus();
                 codeTextarea.selectionStart = cursorPos + command.length;
                 codeTextarea.selectionEnd = cursorPos + command.length;
+                
+                updateStatus(`Вставлена команда: ${commandSelect.options[commandSelect.selectedIndex].text}`);
             }
             
             // Инициализация Робота
             function initRobot() {
-                robotState.x = 0;
-                robotState.y = 0;
+                robotState.x = Math.floor(robotState.gridSize / 2);
+                robotState.y = Math.floor(robotState.gridSize / 2);
                 robotState.direction = 'right';
                 robotState.coloredCells = new Set();
                 robotState.cellSize = robotCanvas.width / robotState.gridSize;
@@ -334,7 +648,7 @@
                 robotCtx.clearRect(0, 0, robotCanvas.width, robotCanvas.height);
                 
                 // Рисуем сетку
-                robotCtx.strokeStyle = '#cccccc';
+                robotCtx.strokeStyle = 'var(--grid-color)';
                 robotCtx.lineWidth = 1;
                 
                 for (let i = 0; i <= robotState.gridSize; i++) {
@@ -354,7 +668,7 @@
                 // Закрашиваем отмеченные клетки
                 robotState.coloredCells.forEach(cell => {
                     const [x, y] = cell.split(',').map(Number);
-                    robotCtx.fillStyle = '#3498db';
+                    robotCtx.fillStyle = 'var(--robot-color)';
                     robotCtx.fillRect(
                         x * robotState.cellSize,
                         y * robotState.cellSize,
@@ -367,13 +681,13 @@
                 const centerX = (robotState.x + 0.5) * robotState.cellSize;
                 const centerY = (robotState.y + 0.5) * robotState.cellSize;
                 
-                robotCtx.fillStyle = '#e74c3c';
+                robotCtx.fillStyle = 'var(--robot-color)';
                 robotCtx.beginPath();
                 robotCtx.arc(centerX, centerY, robotState.cellSize * 0.4, 0, Math.PI * 2);
                 robotCtx.fill();
                 
                 // Рисуем направление
-                robotCtx.strokeStyle = '#ffffff';
+                robotCtx.strokeStyle = 'var(--canvas-bg)';
                 robotCtx.lineWidth = 2;
                 robotCtx.beginPath();
                 robotCtx.moveTo(centerX, centerY);
@@ -402,7 +716,7 @@
                 turtleState.y = turtleCanvas.height / 2;
                 turtleState.angle = 0;
                 turtleState.isPenDown = true;
-                turtleState.path = [];
+                turtleState.path = [{x: turtleState.x, y: turtleState.y}];
                 
                 drawTurtle();
             }
@@ -427,7 +741,7 @@
                 }
                 
                 // Рисуем Черепаху
-                turtleCtx.fillStyle = '#2ecc71';
+                turtleCtx.fillStyle = 'var(--turtle-color)';
                 turtleCtx.beginPath();
                 turtleCtx.arc(turtleState.x, turtleState.y, 8, 0, Math.PI * 2);
                 turtleCtx.fill();
@@ -437,7 +751,7 @@
                 const headX = turtleState.x + Math.cos(angleRad) * 15;
                 const headY = turtleState.y + Math.sin(angleRad) * 15;
                 
-                turtleCtx.strokeStyle = '#000000';
+                turtleCtx.strokeStyle = 'var(--text-color)';
                 turtleCtx.lineWidth = 2;
                 turtleCtx.beginPath();
                 turtleCtx.moveTo(turtleState.x, turtleState.y);
@@ -449,6 +763,7 @@
             function executeKumir() {
                 const code = codeTextarea.value;
                 outputDiv.innerHTML = '';
+                updateStatus('Выполнение программы...');
                 
                 // Сброс исполнителей перед выполнением
                 initRobot();
@@ -648,13 +963,22 @@
                         }
                     }
                     
+                    updateStatus('Программа выполнена успешно', 'success');
                 } catch (e) {
                     outputDiv.innerHTML += `<span class="error">Ошибка выполнения: ${e.message}</span>`;
+                    updateStatus(`Ошибка: ${e.message}`, 'error');
                 }
+            }
+            
+            // Обновление статусной строки
+            function updateStatus(message, type = 'info') {
+                statusLine.textContent = message;
+                statusLine.className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
             }
             
             // Инициализация при загрузке
             updateCommandList();
+            updateStatus('Готов к выполнению');
         });
     </script>
 </body>
