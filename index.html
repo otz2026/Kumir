@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Интерпретатор Кумир в браузере</title>
+    <title>Интерпретатор Кумир с графикой</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,14 +14,14 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         .editor-area, .output-area {
             border: 1px solid #ccc;
             padding: 10px;
             border-radius: 5px;
-            min-height: 300px;
+            min-height: 200px;
             background-color: #f9f9f9;
         }
         textarea {
@@ -41,6 +41,7 @@
         .button-group {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         button {
             padding: 8px 15px;
@@ -60,31 +61,142 @@
         .error {
             color: red;
         }
+        .menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .menu select, .menu button {
+            padding: 6px 10px;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        canvas {
+            border: 1px solid #000;
+            background-color: white;
+        }
+        .executor-controls {
+            margin-top: 10px;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tab-button {
+            padding: 5px 10px;
+            background-color: #ddd;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+        }
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Интерпретатор Кумир в браузере</h1>
+        <h1>Интерпретатор Кумир с графическими исполнителями</h1>
+        
+        <div class="menu">
+            <select id="command-type">
+                <option value="basic">Основные команды</option>
+                <option value="loop">Циклы</option>
+                <option value="robot">Робот</option>
+                <option value="turtle">Черепаха</option>
+                <option value="io">Ввод/вывод</option>
+            </select>
+            
+            <select id="command-select">
+                <!-- Основные команды -->
+                <option value="алг\nнач\nкон">алг...нач...кон</option>
+                <option value="вывод &quot;текст&quot;">вывод "текст"</option>
+                <option value="вещ x := 0">вещ x := 0</option>
+                <option value="цел x := 0">цел x := 0</option>
+                <option value="лит x := &quot;&quot;">лит x := ""</option>
+                
+                <!-- Циклы -->
+                <option value="нц для i от 1 до 10\n  \nкц" class="loop">нц для i от 1 до 10...кц</option>
+                <option value="нц пока условие\n  \nкц" class="loop">нц пока условие...кц</option>
+                
+                <!-- Робот -->
+                <option value="использовать Робот" class="robot">использовать Робот</option>
+                <option value="вверх" class="robot">вверх</option>
+                <option value="вниз" class="robot">вниз</option>
+                <option value="влево" class="robot">влево</option>
+                <option value="вправо" class="robot">вправо</option>
+                <option value="закрасить" class="robot">закрасить</option>
+                <option value="клетка_закрашена" class="robot">клетка_закрашена</option>
+                
+                <!-- Черепаха -->
+                <option value="использовать Черепаха" class="turtle">использовать Черепаха</option>
+                <option value="опустить_перо" class="turtle">опустить_перо</option>
+                <option value="поднять_перо" class="turtle">поднять_перо</option>
+                <option value="вперёд(10)" class="turtle">вперёд(10)</option>
+                <option value="назад(10)" class="turtle">назад(10)</option>
+                <option value="влево(90)" class="turtle">влево(90)</option>
+                <option value="вправо(90)" class="turtle">вправо(90)</option>
+                
+                <!-- Ввод/вывод -->
+                <option value="ввод x" class="io">ввод x</option>
+                <option value="вывод x" class="io">вывод x</option>
+            </select>
+            
+            <button id="insert-btn">Вставить</button>
+        </div>
         
         <div class="editor-area">
             <textarea id="kumir-code" spellcheck="false">алг
 нач
-  вывод "Введите число: "
-  ввод n
-  рез := 1
-  нц для i от 1 до n
-    рез := рез * i
-  кц
-  вывод "Факториал ", n, " равен ", рез
+  вывод "Привет, Кумир!"
 кон</textarea>
         </div>
         
         <div class="button-group">
             <button id="run-btn">Выполнить (F9)</button>
-            <button id="clear-btn">Очистить</button>
+            <button id="clear-btn">Очистить вывод</button>
+            <button id="clear-code-btn">Очистить код</button>
         </div>
         
-        <div class="output-area" id="output"></div>
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="output">Вывод</button>
+            <button class="tab-button" data-tab="robot-tab">Робот</button>
+            <button class="tab-button" data-tab="turtle-tab">Черепаха</button>
+        </div>
+        
+        <div class="tab-content active" id="output"></div>
+        
+        <div class="tab-content" id="robot-tab">
+            <div class="executor-controls">
+                <button id="reset-robot-btn">Сбросить Робота</button>
+                <label>Размер сетки:
+                    <input type="number" id="robot-grid-size" min="5" max="50" value="15">
+                </label>
+            </div>
+            <canvas id="robot-canvas" width="400" height="400"></canvas>
+        </div>
+        
+        <div class="tab-content" id="turtle-tab">
+            <div class="executor-controls">
+                <button id="reset-turtle-btn">Сбросить Черепаху</button>
+                <label>Скорость:
+                    <input type="range" id="turtle-speed" min="1" max="10" value="5">
+                </label>
+            </div>
+            <canvas id="turtle-canvas" width="400" height="400"></canvas>
+        </div>
     </div>
 
     <script>
@@ -93,14 +205,52 @@
             const outputDiv = document.getElementById('output');
             const runBtn = document.getElementById('run-btn');
             const clearBtn = document.getElementById('clear-btn');
+            const clearCodeBtn = document.getElementById('clear-code-btn');
+            const commandTypeSelect = document.getElementById('command-type');
+            const commandSelect = document.getElementById('command-select');
+            const insertBtn = document.getElementById('insert-btn');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
             
-            // Обработчик кнопки выполнения
+            // Графические исполнители
+            const robotCanvas = document.getElementById('robot-canvas');
+            const robotCtx = robotCanvas.getContext('2d');
+            const turtleCanvas = document.getElementById('turtle-canvas');
+            const turtleCtx = turtleCanvas.getContext('2d');
+            const resetRobotBtn = document.getElementById('reset-robot-btn');
+            const resetTurtleBtn = document.getElementById('reset-turtle-btn');
+            const robotGridSizeInput = document.getElementById('robot-grid-size');
+            
+            // Состояние исполнителей
+            let robotState = {
+                x: 0,
+                y: 0,
+                gridSize: 15,
+                cellSize: 0,
+                direction: 'right',
+                isPenDown: false,
+                coloredCells: new Set()
+            };
+            
+            let turtleState = {
+                x: 200,
+                y: 200,
+                angle: 0,
+                isPenDown: true,
+                color: '#000000',
+                speed: 5,
+                path: []
+            };
+            
+            // Инициализация
+            initRobot();
+            initTurtle();
+            
+            // Обработчики кнопок
             runBtn.addEventListener('click', executeKumir);
-            
-            // Обработчик кнопки очистки
-            clearBtn.addEventListener('click', function() {
-                outputDiv.innerHTML = '';
-            });
+            clearBtn.addEventListener('click', () => outputDiv.innerHTML = '');
+            clearCodeBtn.addEventListener('click', () => codeTextarea.value = '');
+            insertBtn.addEventListener('click', insertCommand);
             
             // Горячая клавиша F9
             document.addEventListener('keydown', function(e) {
@@ -110,10 +260,199 @@
                 }
             });
             
+            // Изменение типа команд
+            commandTypeSelect.addEventListener('change', updateCommandList);
+            
+            // Сброс исполнителей
+            resetRobotBtn.addEventListener('click', initRobot);
+            resetTurtleBtn.addEventListener('click', initTurtle);
+            robotGridSizeInput.addEventListener('change', () => {
+                robotState.gridSize = parseInt(robotGridSizeInput.value);
+                initRobot();
+            });
+            
+            // Переключение вкладок
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    button.classList.add('active');
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Обновление списка команд в зависимости от выбранного типа
+            function updateCommandList() {
+                const type = commandTypeSelect.value;
+                const options = commandSelect.querySelectorAll('option');
+                
+                options.forEach(option => {
+                    if (!option.className || option.className === type) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                
+                // Выбираем первую видимую опцию
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].style.display !== 'none') {
+                        commandSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Вставка выбранной команды
+            function insertCommand() {
+                const command = commandSelect.value;
+                const cursorPos = codeTextarea.selectionStart;
+                const textBefore = codeTextarea.value.substring(0, cursorPos);
+                const textAfter = codeTextarea.value.substring(cursorPos);
+                
+                codeTextarea.value = textBefore + command + textAfter;
+                codeTextarea.focus();
+                codeTextarea.selectionStart = cursorPos + command.length;
+                codeTextarea.selectionEnd = cursorPos + command.length;
+            }
+            
+            // Инициализация Робота
+            function initRobot() {
+                robotState.x = 0;
+                robotState.y = 0;
+                robotState.direction = 'right';
+                robotState.coloredCells = new Set();
+                robotState.cellSize = robotCanvas.width / robotState.gridSize;
+                
+                drawRobotGrid();
+            }
+            
+            // Отрисовка сетки Робота
+            function drawRobotGrid() {
+                robotCtx.clearRect(0, 0, robotCanvas.width, robotCanvas.height);
+                
+                // Рисуем сетку
+                robotCtx.strokeStyle = '#cccccc';
+                robotCtx.lineWidth = 1;
+                
+                for (let i = 0; i <= robotState.gridSize; i++) {
+                    // Горизонтальные линии
+                    robotCtx.beginPath();
+                    robotCtx.moveTo(0, i * robotState.cellSize);
+                    robotCtx.lineTo(robotCanvas.width, i * robotState.cellSize);
+                    robotCtx.stroke();
+                    
+                    // Вертикальные линии
+                    robotCtx.beginPath();
+                    robotCtx.moveTo(i * robotState.cellSize, 0);
+                    robotCtx.lineTo(i * robotState.cellSize, robotCanvas.height);
+                    robotCtx.stroke();
+                }
+                
+                // Закрашиваем отмеченные клетки
+                robotState.coloredCells.forEach(cell => {
+                    const [x, y] = cell.split(',').map(Number);
+                    robotCtx.fillStyle = '#3498db';
+                    robotCtx.fillRect(
+                        x * robotState.cellSize,
+                        y * robotState.cellSize,
+                        robotState.cellSize,
+                        robotState.cellSize
+                    );
+                });
+                
+                // Рисуем Робота
+                const centerX = (robotState.x + 0.5) * robotState.cellSize;
+                const centerY = (robotState.y + 0.5) * robotState.cellSize;
+                
+                robotCtx.fillStyle = '#e74c3c';
+                robotCtx.beginPath();
+                robotCtx.arc(centerX, centerY, robotState.cellSize * 0.4, 0, Math.PI * 2);
+                robotCtx.fill();
+                
+                // Рисуем направление
+                robotCtx.strokeStyle = '#ffffff';
+                robotCtx.lineWidth = 2;
+                robotCtx.beginPath();
+                robotCtx.moveTo(centerX, centerY);
+                
+                switch (robotState.direction) {
+                    case 'up':
+                        robotCtx.lineTo(centerX, centerY - robotState.cellSize * 0.3);
+                        break;
+                    case 'down':
+                        robotCtx.lineTo(centerX, centerY + robotState.cellSize * 0.3);
+                        break;
+                    case 'left':
+                        robotCtx.lineTo(centerX - robotState.cellSize * 0.3, centerY);
+                        break;
+                    case 'right':
+                        robotCtx.lineTo(centerX + robotState.cellSize * 0.3, centerY);
+                        break;
+                }
+                
+                robotCtx.stroke();
+            }
+            
+            // Инициализация Черепахи
+            function initTurtle() {
+                turtleState.x = turtleCanvas.width / 2;
+                turtleState.y = turtleCanvas.height / 2;
+                turtleState.angle = 0;
+                turtleState.isPenDown = true;
+                turtleState.path = [];
+                
+                drawTurtle();
+            }
+            
+            // Отрисовка Черепахи
+            function drawTurtle() {
+                turtleCtx.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
+                
+                // Рисуем путь
+                if (turtleState.path.length > 1) {
+                    turtleCtx.strokeStyle = turtleState.color;
+                    turtleCtx.lineWidth = 2;
+                    turtleCtx.beginPath();
+                    
+                    turtleCtx.moveTo(turtleState.path[0].x, turtleState.path[0].y);
+                    
+                    for (let i = 1; i < turtleState.path.length; i++) {
+                        turtleCtx.lineTo(turtleState.path[i].x, turtleState.path[i].y);
+                    }
+                    
+                    turtleCtx.stroke();
+                }
+                
+                // Рисуем Черепаху
+                turtleCtx.fillStyle = '#2ecc71';
+                turtleCtx.beginPath();
+                turtleCtx.arc(turtleState.x, turtleState.y, 8, 0, Math.PI * 2);
+                turtleCtx.fill();
+                
+                // Рисуем направление
+                const angleRad = turtleState.angle * Math.PI / 180;
+                const headX = turtleState.x + Math.cos(angleRad) * 15;
+                const headY = turtleState.y + Math.sin(angleRad) * 15;
+                
+                turtleCtx.strokeStyle = '#000000';
+                turtleCtx.lineWidth = 2;
+                turtleCtx.beginPath();
+                turtleCtx.moveTo(turtleState.x, turtleState.y);
+                turtleCtx.lineTo(headX, headY);
+                turtleCtx.stroke();
+            }
+            
             // Простой интерпретатор Кумир
             function executeKumir() {
                 const code = codeTextarea.value;
                 outputDiv.innerHTML = '';
+                
+                // Сброс исполнителей перед выполнением
+                initRobot();
+                initTurtle();
                 
                 try {
                     // Разбиваем код на строки
@@ -121,14 +460,23 @@
                     let inAlgorithm = false;
                     let inMain = false;
                     let variables = {};
-                    let inputQueue = [];
-                    
-                    // Очищаем предыдущий вывод
-                    outputDiv.innerHTML = '';
+                    let usingRobot = false;
+                    let usingTurtle = false;
                     
                     // Обрабатываем каждую строку
                     for (let i = 0; i < lines.length; i++) {
                         const line = lines[i].trim();
+                        
+                        // Проверяем использование исполнителей
+                        if (line.includes('использовать Робот')) {
+                            usingRobot = true;
+                            continue;
+                        }
+                        
+                        if (line.includes('использовать Черепаха')) {
+                            usingTurtle = true;
+                            continue;
+                        }
                         
                         // Проверяем начало алгоритма
                         if (line.startsWith('алг')) {
@@ -192,14 +540,108 @@
                             
                             // Обработка цикла для (очень упрощенная)
                             else if (line.startsWith('нц для')) {
-                                // Это очень упрощенная реализация только для демонстрации
                                 const match = line.match(/нц для i от (\d+) до (\d+)/);
                                 if (match) {
                                     const start = parseInt(match[1]);
                                     const end = parseInt(match[2]);
                                     for (let j = start; j <= end; j++) {
                                         variables['i'] = j;
-                                        // Здесь должна быть обработка тела цикла, но для простоты пропустим
+                                        // Обработка тела цикла (пропускаем для простоты)
+                                    }
+                                }
+                            }
+                            
+                            // Команды Робота
+                            else if (usingRobot) {
+                                if (line === 'вверх') {
+                                    robotState.direction = 'up';
+                                    drawRobotGrid();
+                                } else if (line === 'вниз') {
+                                    robotState.direction = 'down';
+                                    drawRobotGrid();
+                                } else if (line === 'влево') {
+                                    robotState.direction = 'left';
+                                    drawRobotGrid();
+                                } else if (line === 'вправо') {
+                                    robotState.direction = 'right';
+                                    drawRobotGrid();
+                                } else if (line === 'закрасить') {
+                                    const cellKey = `${robotState.x},${robotState.y}`;
+                                    robotState.coloredCells.add(cellKey);
+                                    drawRobotGrid();
+                                } else if (line === 'клетка_закрашена') {
+                                    const cellKey = `${robotState.x},${robotState.y}`;
+                                    return robotState.coloredCells.has(cellKey);
+                                } else if (line === 'сместиться') {
+                                    switch (robotState.direction) {
+                                        case 'up':
+                                            if (robotState.y > 0) robotState.y--;
+                                            break;
+                                        case 'down':
+                                            if (robotState.y < robotState.gridSize - 1) robotState.y++;
+                                            break;
+                                        case 'left':
+                                            if (robotState.x > 0) robotState.x--;
+                                            break;
+                                        case 'right':
+                                            if (robotState.x < robotState.gridSize - 1) robotState.x++;
+                                            break;
+                                    }
+                                    drawRobotGrid();
+                                }
+                            }
+                            
+                            // Команды Черепахи
+                            else if (usingTurtle) {
+                                if (line === 'опустить_перо') {
+                                    turtleState.isPenDown = true;
+                                } else if (line === 'поднять_перо') {
+                                    turtleState.isPenDown = false;
+                                } else if (line.startsWith('вперёд(') || line.startsWith('вперед(')) {
+                                    const match = line.match(/впер[ёе]д\((\d+)\)/);
+                                    if (match) {
+                                        const distance = parseInt(match[1]);
+                                        const angleRad = turtleState.angle * Math.PI / 180;
+                                        const newX = turtleState.x + Math.cos(angleRad) * distance;
+                                        const newY = turtleState.y + Math.sin(angleRad) * distance;
+                                        
+                                        if (turtleState.isPenDown) {
+                                            turtleState.path.push({x: turtleState.x, y: turtleState.y});
+                                            turtleState.path.push({x: newX, y: newY});
+                                        }
+                                        
+                                        turtleState.x = newX;
+                                        turtleState.y = newY;
+                                        drawTurtle();
+                                    }
+                                } else if (line.startsWith('назад(')) {
+                                    const match = line.match(/назад\((\d+)\)/);
+                                    if (match) {
+                                        const distance = parseInt(match[1]);
+                                        const angleRad = turtleState.angle * Math.PI / 180;
+                                        const newX = turtleState.x - Math.cos(angleRad) * distance;
+                                        const newY = turtleState.y - Math.sin(angleRad) * distance;
+                                        
+                                        if (turtleState.isPenDown) {
+                                            turtleState.path.push({x: turtleState.x, y: turtleState.y});
+                                            turtleState.path.push({x: newX, y: newY});
+                                        }
+                                        
+                                        turtleState.x = newX;
+                                        turtleState.y = newY;
+                                        drawTurtle();
+                                    }
+                                } else if (line.startsWith('влево(')) {
+                                    const match = line.match(/влево\((\d+)\)/);
+                                    if (match) {
+                                        turtleState.angle -= parseInt(match[1]);
+                                        drawTurtle();
+                                    }
+                                } else if (line.startsWith('вправо(')) {
+                                    const match = line.match(/вправо\((\d+)\)/);
+                                    if (match) {
+                                        turtleState.angle += parseInt(match[1]);
+                                        drawTurtle();
                                     }
                                 }
                             }
@@ -210,6 +652,9 @@
                     outputDiv.innerHTML += `<span class="error">Ошибка выполнения: ${e.message}</span>`;
                 }
             }
+            
+            // Инициализация при загрузке
+            updateCommandList();
         });
     </script>
 </body>
